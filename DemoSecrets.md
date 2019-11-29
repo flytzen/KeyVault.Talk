@@ -1,0 +1,148 @@
+
+# Secrets Demo Script
+
+## Prepare
+```
+az login
+az account set --subscription xxxx
+az configure --scope local --defaults location=westeurope group=fl-test-keyvault-secrets
+az group create --name fl-test-keyvault-secrets
+```
+
+## Create a Key Vault
+*Run this ahead of time - it takes time*
+```
+az keyvault create --name fl-test-secrets
+```
+
+## Give read and write permissions to a user
+```
+az keyvault set-policy `
+    --name fl-test-secrets `
+    --upn "flytzen@neworbit.co.uk" `
+    --secret-permissions get, list, set  
+```
+In the real world, a consuming application should not have "set" and an admin shouldn't have get
+
+## Add a secret
+*You can do this in the portal as well - and in code of course*
+```
+az keyvault secret set `
+    --name supersecretpassword `
+    --vault-name fl-test-secrets `
+    --value ohmyworditssosecret `
+    --output table
+```
+
+## Set up a console app to read the secret
+*Note: New packages have just come out but they have less intuitive auth - for now*
+```
+cd C:\Code\KeyVault.Talk
+dotnet new console -n ShowSecrets 
+cd ShowSecrets 
+dotnet add package Microsoft.Azure.KeyVault
+dotnet add package Microsoft.Azure.Services.AppAuthentication
+code .
+```
+
+## Variables
+```csharp
+private static string keyVaultUrl = "https://fl-test-secrets.vault.azure.net";
+private static string supersecretname = "supersecretpassword";
+```
+
+## Simple program to retrieve secret
+```csharp
+static async Task Main(string[] args)
+{
+    var tokenProvider = new AzureServiceTokenProvider();
+    var keyVaultClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
+    var secretValue = await keyVaultClient.GetSecretAsync(keyVaultUrl, supersecretname);
+
+    Console.WriteLine(secretValue.Value);
+}
+
+```
+
+When running, add 
+```json
+"logging": {
+    "moduleLoad": false
+}
+```
+to `launch.json`
+
+
+## Change the secret
+```
+az keyvault secret set `
+    --name supersecretpassword `
+    --vault-name fl-test-secrets `
+    --value somenewvalue
+```
+
+## See all the versions
+```csharp
+static async Task Main(string[] args)
+{
+    var tokenProvider = new AzureServiceTokenProvider();
+    var keyVaultClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
+    
+    var secretVersions = await keyVaultClient.GetSecretVersionsAsync(keyVaultUrl, supersecretname);
+
+    foreach(var secretVersion in secretVersions)
+    {
+        var secretVersionValue = await keyVaultClient.GetSecretAsync(secretVersion.Id);
+        Console.WriteLine($"{secretVersion.Identifier} | {secretVersion.Attributes.Enabled} | {secretVersion.Attributes.NotBefore} | {secretVersion.Attributes.Expires} | {secretVersionValue.Value}" );
+    }  
+}
+```
+
+*show Asp.net core integration* TODO: Check it that respects the dates?
+```
+dotnet new mvc
+dotnet add package Microsoft.Azure.KeyVault
+dotnet add package Microsoft.Azure.Services.AppAuthentication
+dotnet add package Microsoft.Extensions.Configuration.AzureKeyVault
+```
+
+In `program.cs` change:
+```csharp
+public static IHostBuilder CreateHostBuilder(string[] args) =>
+    Host.CreateDefaultBuilder(args)
+        .ConfigureWebHostDefaults(webBuilder =>
+        {
+            webBuilder.UseStartup<Startup>();
+        })
+        .ConfigureAppConfiguration((context, config) => {
+            config.AddAzureKeyVault("https://fl-test-secrets.vault.azure.net",
+                                    new KeyVaultClient(
+                                        new KeyVaultClient.AuthenticationCallback(
+                                            new AzureServiceTokenProvider().KeyVaultTokenCallback)),
+                                    new DefaultKeyVaultSecretManager());
+        });
+
+```
+
+In `Home/index.cshtml` add:
+```
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@{
+   string myPassword = Configuration["supersecretpassword"];
+}
+
+<h2>Retrieved from Key Vault:</h2>
+<h1>@myPassword</h1>
+```
+
+# Do it on Azure
+```
+ az appservice plan create --name fl-test-keyvault-secrets --sku S1
+ az webapp create --name fl-test-keyvault-secrets --plan fl-test-keyvault-secrets --deployment-local-git
+
+git init
+echo "bin/" | out-file .gitignore -encoding utf8
+echo "obj/" | out-file .gitignore -encoding utf8 -append
+git add -A
+```
