@@ -5,20 +5,20 @@
 ```
 az login
 az account set --subscription xxxx
-az configure --scope local --defaults location=westeurope group=fl-test-keyvault-secrets
-az group create --name fl-test-keyvault-secrets
+az configure --scope local --defaults location=westeurope group=fl-test-keyvault
+az group create --name fl-test-keyvault
 ```
 
 ## Create a Key Vault
 *Run this ahead of time - it takes time*
 ```
-az keyvault create --name fl-test-secrets
+az keyvault create --name fl-test
 ```
 
 ## Give read and write permissions to a user
 ```
 az keyvault set-policy `
-    --name fl-test-secrets `
+    --name fl-test `
     --upn "flytzen@neworbit.co.uk" `
     --secret-permissions get, list, set  
 ```
@@ -29,7 +29,7 @@ In the real world, a consuming application should not have "set" and an admin sh
 ```
 az keyvault secret set `
     --name supersecretpassword `
-    --vault-name fl-test-secrets `
+    --vault-name fl-test `
     --value ohmyworditssosecret `
     --output table
 ```
@@ -47,7 +47,7 @@ code .
 
 ## Variables
 ```csharp
-private static string keyVaultUrl = "https://fl-test-secrets.vault.azure.net";
+private static string keyVaultUrl = "https://fl-test.vault.azure.net";
 private static string supersecretname = "supersecretpassword";
 ```
 
@@ -77,9 +77,15 @@ to `launch.json`
 ```
 az keyvault secret set `
     --name supersecretpassword `
-    --vault-name fl-test-secrets `
-    --value somenewvalue
+    --vault-name fl-test `
+    --value somenewvalue `
+    --not-before 2019-12-24T14:30:25z `
+    --expires 2019-12-31T23:59:59z `
+    --disabled false
 ```
+Note that the "disabled" flag is enforced; most operations are blocked on a disabled secret.
+However, the nbf and expiry are for information and it's up to you to read them and act on them
+This is *different* for keys!
 
 ## See all the versions
 ```csharp
@@ -115,7 +121,7 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
             webBuilder.UseStartup<Startup>();
         })
         .ConfigureAppConfiguration((context, config) => {
-            config.AddAzureKeyVault("https://fl-test-secrets.vault.azure.net",
+            config.AddAzureKeyVault("https://fl-test.vault.azure.net",
                                     new KeyVaultClient(
                                         new KeyVaultClient.AuthenticationCallback(
                                             new AzureServiceTokenProvider().KeyVaultTokenCallback)),
@@ -137,12 +143,5 @@ In `Home/index.cshtml` add:
 ```
 
 # Do it on Azure
-```
- az appservice plan create --name fl-test-keyvault-secrets --sku S1
- az webapp create --name fl-test-keyvault-secrets --plan fl-test-keyvault-secrets --deployment-local-git
-
-git init
-echo "bin/" | out-file .gitignore -encoding utf8
-echo "obj/" | out-file .gitignore -encoding utf8 -append
-git add -A
-```
+Basically, deploy it, create the Managed Identity and give the Managed Identity read rights to the secrets.
+Job done.

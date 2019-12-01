@@ -7,7 +7,7 @@ namespace ShowSecrets
 {
     class Program
     {
-        private static string keyVaultUrl = "https://fl-test-secrets.vault.azure.net";
+        private static string keyVaultUrl = "https://fl-test.vault.azure.net";
         private static string supersecretname = "supersecretpassword";  
 
         static async Task Main(string[] args)
