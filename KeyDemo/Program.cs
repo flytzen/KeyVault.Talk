@@ -33,7 +33,7 @@ namespace KeyDemo
 
             var signingResult = await Sign(inputText);
 
-            signingResult.Data = "dodgy hacker";
+            // signingResult.Data = "dodgy hacker";
 
             var verifyResult = await Verify(signingResult);
             Console.WriteLine($"Verify result: {verifyResult}");
@@ -84,7 +84,9 @@ namespace KeyDemo
         private static async Task<string> Decrypt(EncryptedData data)
         {
             // *** Ask Key Vault to decrypt the symmetric key ****
-            var unwrapKeyResult = await keyVaultClient.UnwrapKeyAsync(data.WrappingKeyIdentifier, JsonWebKeyEncryptionAlgorithm.RSA15, data.WrappedKey);
+            var unwrapKeyResult = await keyVaultClient.UnwrapKeyAsync(data.WrappingKeyIdentifier, 
+                                                        JsonWebKeyEncryptionAlgorithm.RSA15, 
+                                                        data.WrappedKey);
             var symmetricKey = unwrapKeyResult.Result;
 
             using (var decryptingAes = Aes.Create()) 

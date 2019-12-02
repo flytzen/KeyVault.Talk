@@ -31,8 +31,14 @@ az keyvault secret set `
     --name supersecretpassword `
     --vault-name fl-test `
     --value ohmyworditssosecret `
+    --not-before 2019-12-03T14:30:25z `
+    --expires 2019-12-24T23:59:59z `
+    --disabled false
     --output table
 ```
+Note that the "disabled" flag is enforced; most operations are blocked on a disabled secret.
+However, the nbf and expiry are for information and it's up to you to read them and act on them
+This is *different* for keys!s
 
 ## Set up a console app to read the secret
 *Note: New packages have just come out but they have less intuitive auth - for now*
@@ -83,9 +89,7 @@ az keyvault secret set `
     --expires 2019-12-31T23:59:59z `
     --disabled false
 ```
-Note that the "disabled" flag is enforced; most operations are blocked on a disabled secret.
-However, the nbf and expiry are for information and it's up to you to read them and act on them
-This is *different* for keys!
+
 
 ## See all the versions
 ```csharp
@@ -104,7 +108,6 @@ static async Task Main(string[] args)
 }
 ```
 
-*show Asp.net core integration* TODO: Check it that respects the dates?
 ```
 dotnet new mvc
 dotnet add package Microsoft.Azure.KeyVault
