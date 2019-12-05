@@ -84,7 +84,7 @@ to `launch.json`
 az keyvault secret set `
     --name supersecretpassword `
     --vault-name fl-test `
-    --value somenewvalue `
+    --value OXFORD `
     --not-before 2019-12-24T14:30:25z `
     --expires 2019-12-31T23:59:59z `
     --disabled false

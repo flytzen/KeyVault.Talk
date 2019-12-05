@@ -19,26 +19,11 @@ namespace KeyDemo
             var tokenProvider = new AzureServiceTokenProvider();
             keyVaultClient = new KeyVaultClient(new KeyVaultClient.AuthenticationCallback(tokenProvider.KeyVaultTokenCallback));
             
-            // var encrypted = await EncryptAndWrap(inputText);
-            // Console.WriteLine($"Encryption Done with specific key: {encrypted.WrappingKeyIdentifier}");
-
-            // var decrypted = await Decrypt(encrypted);
-
-            // if (decrypted == inputText) 
-            // {
-            //     Console.WriteLine("Decryption was successful");
-            // } else {
-            //     Console.WriteLine("Piffle Paffle!!");
-            // }
-
-            var signingResult = await Sign(inputText);
-
-            // signingResult.Data = "dodgy hacker";
-
-            var verifyResult = await Verify(signingResult);
-            Console.WriteLine($"Verify result: {verifyResult}");
+            var signedData = await Sign(inputText);
             
-
+            var verifyResult = await Verify(signedData);
+            
+            Console.WriteLine($"\nVerify result: {verifyResult}.\n\nKey identifier: {signedData.SigningKeyIdentifier}\n");
         }
 
         private static async Task<EncryptedData> EncryptAndWrap(string textToEncrypt)
